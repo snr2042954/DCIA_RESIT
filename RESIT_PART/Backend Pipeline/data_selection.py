@@ -1,3 +1,4 @@
+### DATALOADING
 import pandas as pd
 import numpy as np
 
@@ -51,5 +52,10 @@ def shorten_data(df,n_students):
 
     return df_top_populated
 
-data = shorten_data(load_student_data('student_abilities_pivoted.csv'),n_students=100)
-print(data.head())
+if __name__ == '__main__':
+
+    # Load and shorten the data
+    df = shorten_data(load_student_data('../Data/student_abilities.csv'),n_students=50)
+
+    # Export to CSV
+    df.to_csv('../Data/shortened_student_abilities.csv')

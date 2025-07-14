@@ -1,0 +1,9 @@
+{
+    "best_factors": 30,
+    "best_iters": 10,
+    "best_rmse": 0.4346007293805728,
+    "best_index": [
+        2,
+        0
+    ]
+}
