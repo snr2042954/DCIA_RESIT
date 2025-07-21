@@ -40,6 +40,14 @@ Main Streamlit app to run the frontend.
 - Allows threshold tuning via sliders
 - Explains results via interactive tabs or expanders
 
+### `asset folder`
+
+Contains one sole image which is used in the streamlit app
+
+### `requirements.txt`
+
+Contains the requirements to run app.py
+
 ---
 
 ## Visual Features
@@ -54,4 +62,5 @@ Main Streamlit app to run the frontend.
 
 ## How To Run
 
+First install necessary requirements from requirements.txt
 to launch app simply return 'streamlit run app.py' in the terminal
