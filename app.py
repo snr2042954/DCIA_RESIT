@@ -70,168 +70,188 @@ def load_data():
 
 ### SETTING UP THE UI
 
-st.image("assets/SafeSkip.png")
+st.set_page_config(page_title="SafeSkip", page_icon="assets/SafeSkip.png", layout="centered")
 
-st.title("SafeSkip Recommender System")
+# Sidebar navigation
+st.sidebar.title("Navigation")
+page = st.sidebar.radio("Go to", ["Home", "SafeSkip Recommender"])
 
-st.header("Data Selection")
+if page == "Home":
 
-# Load in the data from the data load function
-df_students, df_hierarchy, microgoal_names, U, V, mu, best_params = load_data()
-student_ids = df_students.index.tolist()
-selected_user = st.selectbox("Select a student", student_ids)
+    st.image("assets/SafeSkip.png")
 
-threshold = st.slider("ELO Pass Threshold", min_value=0.0, max_value=2.0, value=1.0, step=0.1)
-st.caption("By selecting a threshold you decide from which ELO score onwards a micro-goal is considered to have been passed. "
-           "This concerns already completed microgoals AND the predictions. "
-           "The threshold therefore updates the completed microgoals, the SafeSkip recommendatons and the evaluation metrics below.")
+    st.title("SafeSkip Recommender System")
 
-top_n = st.slider("Number of Recommendations", min_value=1, max_value=20, value=5)
-st.caption("This slider simply limits the amount of recommendations that the SafeSkip system shows.")
+    st.markdown("""
+    
+    **SafeSkip** is an intelligent recommendation tool built by a student consultancy team at JADS in collaboration with Gynzy.  
+    It is designed to identify which educational *microgoals* a student can **safely skip**, allowing for a more efficient, personalized learning experience without compromising mastery.
+    
+    The system uses **ALS (Alternating Least Squares)** matrix factorization to model each student's ability based on historical data. It then recommends only those microgoals:
+    - That the student hasn’t completed yet,
+    - That belong to topics (islands) the student has already engaged with,
+    - And for which their predicted performance is confidently above the mastery threshold.
+    
+    This interface lets you explore which microgoals a student has already mastered, and which ones can potentially be skipped backed by real model predictions and evaluation metrics.
+    """, unsafe_allow_html=True)
 
-st.markdown("---")
+if page == "SafeSkip Recommender":
 
-st.header("Microgoal Overview")
+    st.header("Data Selection")
 
-# This try loop contains all the actual lookups from the data which we just selected
-# It also makes the predictions
-try:
+    # Load in the data from the data load function
+    df_students, df_hierarchy, microgoal_names, U, V, mu, best_params = load_data()
+    student_ids = df_students.index.tolist()
+    selected_user = st.selectbox("Select a student", student_ids)
 
-    # Get completed Microgoals from set threshold
-    completed = get_completed_microgoals(selected_user, df_students, microgoal_names, pass_threshold=threshold)
-    st.subheader("This Student's Completed Micro-goals")
-    if completed:
-        st.dataframe(pd.DataFrame(completed, columns=["ID", "Name", "ELO Score"]))
-    else:
-        st.info("This student has not completed any microgoals above the threshold.")
+    threshold = st.slider("ELO Pass Threshold", min_value=0.0, max_value=2.0, value=1.0, step=0.1)
+    st.caption("By selecting a threshold you decide from which ELO score onwards a micro-goal is considered to have been passed. "
+               "This concerns already completed microgoals AND the predictions. "
+               "The threshold therefore updates the completed microgoals, the SafeSkip recommendatons and the evaluation metrics below.")
 
-    # Get the SafeSkip Recommendations
-    recs = recommend_microgoals_within_completed_islands(
-        selected_user, df_students, U, V, mu,
-        microgoal_names, df_hierarchy,
-        threshold=threshold, top_n=top_n
-    )
+    top_n = st.slider("Number of Recommendations", min_value=1, max_value=20, value=5)
+    st.caption("This slider simply limits the amount of recommendations that the SafeSkip system shows.")
 
-    # Fetch safeskip recommendations and put into table
-    st.subheader("SafeSkip Recommendations")
-    if recs:
-        st.dataframe(pd.DataFrame(recs, columns=["ID", "Name", "Predicted ELO"]))
-    else:
-        st.warning("No recommended microgoals found for this student in completed islands.")
+    st.markdown("---")
 
-    # Show top recommendations in a bar graph with the threshold line
-    st.subheader("Predicted Mastery (Bar Chart of Recommendations)")
-    if recs:
-        rec_df = pd.DataFrame(recs, columns=["ID", "Name", "Predicted ELO"])
-        fig_bar, ax_bar = plt.subplots(figsize=(10, 4))
-        sns.barplot(data=rec_df, x="Name", y="Predicted ELO", ax=ax_bar)
+    st.header("Microgoal Overview")
 
-        # insert threshold bar
-        ax_bar.axhline(threshold, color='red', linestyle='--', label='Threshold')
+    # This try loop contains all the actual lookups from the data which we just selected
+    # It also makes the predictions
+    try:
 
-        # Shorten long x-tick labels to only 20 characters
-        labels = [label.get_text() for label in ax_bar.get_xticklabels()]
-        short_labels = [label[:20] + '...' if len(label) > 20 else label for label in labels]
-        ax_bar.set_xticklabels(short_labels, rotation=45, ha="right")
+        # Get completed Microgoals from set threshold
+        completed = get_completed_microgoals(selected_user, df_students, microgoal_names, pass_threshold=threshold)
+        st.subheader("This Student's Completed Micro-goals")
+        if completed:
+            st.dataframe(pd.DataFrame(completed, columns=["ID", "Name", "ELO Score"]))
+        else:
+            st.info("This student has not completed any microgoals above the threshold.")
 
-        # Set title and legend and plot
-        ax_bar.set_title("Top Predicted Microgoals (Safe to Skip)")
-        ax_bar.legend()
-        st.pyplot(fig_bar)
+        # Get the SafeSkip Recommendations
+        recs = recommend_microgoals_within_completed_islands(
+            selected_user, df_students, U, V, mu,
+            microgoal_names, df_hierarchy,
+            threshold=threshold, top_n=top_n
+        )
 
-except Exception as e:
-    st.error(f"An error occurred: {e}")
+        # Fetch safeskip recommendations and put into table
+        st.subheader("SafeSkip Recommendations")
+        if recs:
+            st.dataframe(pd.DataFrame(recs, columns=["ID", "Name", "Predicted ELO"]))
+        else:
+            st.warning("No recommended microgoals found for this student in completed islands.")
 
-st.markdown("---")
-st.header("Evaluation")
+        # Show top recommendations in a bar graph with the threshold line
+        st.subheader("Predicted Mastery (Bar Chart of Recommendations)")
+        if recs:
+            rec_df = pd.DataFrame(recs, columns=["ID", "Name", "Predicted ELO"])
+            fig_bar, ax_bar = plt.subplots(figsize=(10, 4))
+            sns.barplot(data=rec_df, x="Name", y="Predicted ELO", ax=ax_bar)
 
-# Initiate a button whereafter the evaluations are shown
-if st.button("Run Evaluation on Model"):
-    values = df_students.values.astype(float)
-    mask_full = ~np.isnan(values)
-    mu = values[mask_full].mean()
-    coords = list(zip(*np.where(mask_full)))
+            # insert threshold bar
+            ax_bar.axhline(threshold, color='red', linestyle='--', label='Threshold')
 
-    # Create test/train split (20% hidden)
-    mask_demo = mask_full.copy()
-    mask_test_demo = np.zeros_like(mask_full, dtype=bool)
-    np.random.seed(42)
-    np.random.shuffle(coords)
-    n_hide_demo = int(len(coords) * 0.2)
-    for (u, v) in coords[:n_hide_demo]:
-        mask_demo[u, v] = False
-        mask_test_demo[u, v] = True
+            # Shorten long x-tick labels to only 20 characters
+            labels = [label.get_text() for label in ax_bar.get_xticklabels()]
+            short_labels = [label[:20] + '...' if len(label) > 20 else label for label in labels]
+            ax_bar.set_xticklabels(short_labels, rotation=45, ha="right")
 
-    # Train ALS on training portion
-    R_train_demo = np.where(mask_demo, values, mu) - mu
-    U_demo, V_demo = train_als(
-        R_train_demo,
-        mask_demo,
-        n_factors=best_params["best_factors"],
-        n_iters=best_params["best_iters"],
-        reg=0.1
-    )
-    preds_demo = U_demo @ V_demo.T + mu
+            # Set title and legend and plot
+            ax_bar.set_title("Top Predicted Microgoals (Safe to Skip)")
+            ax_bar.legend()
+            st.pyplot(fig_bar)
 
-    # Evaluate (original function uses plt which is not supported
-    # Compute binary classification labels
-    true_bin = (values[mask_test_demo] > threshold).astype(int)
-    pred_bin = (preds_demo[mask_test_demo] > threshold).astype(int)
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
 
-    st.subheader("Evaluation Metrics")
+    st.header("Model Evaluation")
 
-    # Compute metrics
-    accuracy = accuracy_score(true_bin, pred_bin)
-    precision = precision_score(true_bin, pred_bin)
-    recall = recall_score(true_bin, pred_bin)
-    f1 = f1_score(true_bin, pred_bin)
+    # Initiate a button whereafter the evaluations are shown
+    if st.button("Run Evaluation on Model"):
+        values = df_students.values.astype(float)
+        mask_full = ~np.isnan(values)
+        mu = values[mask_full].mean()
+        coords = list(zip(*np.where(mask_full)))
 
-    # Display metrics
-    st.markdown(f"""
-    **Threshold = {threshold}**
+        # Create test/train split (20% hidden)
+        mask_demo = mask_full.copy()
+        mask_test_demo = np.zeros_like(mask_full, dtype=bool)
+        np.random.seed(42)
+        np.random.shuffle(coords)
+        n_hide_demo = int(len(coords) * 0.2)
+        for (u, v) in coords[:n_hide_demo]:
+            mask_demo[u, v] = False
+            mask_test_demo[u, v] = True
 
-    - Accuracy: `{accuracy:.2f}`
-    - Precision: `{precision:.2f}`
-    - Recall: `{recall:.2f}`
-    - F1 Score: `{f1:.2f}`
-    """)
+        # Train ALS on training portion
+        R_train_demo = np.where(mask_demo, values, mu) - mu
+        U_demo, V_demo = train_als(
+            R_train_demo,
+            mask_demo,
+            n_factors=best_params["best_factors"],
+            n_iters=best_params["best_iters"],
+            reg=0.1
+        )
+        preds_demo = U_demo @ V_demo.T + mu
 
-    st.subheader("Confusion Matrix")
+        # Evaluate (original function uses plt which is not supported
+        # Compute binary classification labels
+        true_bin = (values[mask_test_demo] > threshold).astype(int)
+        pred_bin = (preds_demo[mask_test_demo] > threshold).astype(int)
 
-    # Plot confusion matrix
-    cm = confusion_matrix(true_bin, pred_bin)
-    fig, ax = plt.subplots()
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax)
-    ax.set_xlabel("Predicted")
-    ax.set_ylabel("Actual")
-    ax.set_title("Confusion Matrix")
-    st.pyplot(fig)
+        st.subheader("Evaluation Metrics")
 
-    # Initiate explanatory tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["TP", "TN", "FP", "FN"])
+        # Compute metrics
+        accuracy = accuracy_score(true_bin, pred_bin)
+        precision = precision_score(true_bin, pred_bin)
+        recall = recall_score(true_bin, pred_bin)
+        f1 = f1_score(true_bin, pred_bin)
 
-    # Unpack confusion matrix values
-    tn, fp, fn, tp = cm.ravel()
+        # Display metrics
+        st.markdown(f"""
+        **Threshold = {threshold}**
+    
+        - Accuracy: `{accuracy:.2f}`
+        - Precision: `{precision:.2f}`
+        - Recall: `{recall:.2f}`
+        - F1 Score: `{f1:.2f}`
+        """)
 
-    # Fill explanatory tabs
-    with tab1:
-        st.metric(label="True Positives (TP):", value=tp)
-        st.write("These are cases where the model **correctly predicted mastery** (ELO ≥ threshold)."
-                 "(Bottom right)")
+        st.subheader("Confusion Matrix")
 
-    with tab2:
-        st.metric(label="True Negatives (TN):", value=tn)
-        st.write("The model **correctly predicted lack of mastery** (ELO < threshold)."
-                 "(Top left)")
+        # Plot confusion matrix
+        cm = confusion_matrix(true_bin, pred_bin)
+        fig, ax = plt.subplots(figsize=(4, 4))
+        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax)
+        ax.set_xlabel("Predicted")
+        ax.set_ylabel("Actual")
+        ax.set_title("Confusion Matrix")
+        st.pyplot(fig)
 
-    with tab3:
-        st.metric(label="False Positives (FP):", value=fp)
-        st.write("Model **falsely predicted mastery** when the student had not actually mastered the microgoal."
-                 "(Top Right)")
+        # Initiate explanatory tabs
+        tab1, tab2, tab3, tab4 = st.tabs(["TP", "TN", "FP", "FN"])
 
-    with tab4:
-        st.metric(label="False Negatives (FN):", value=fn)
-        st.write("Model **missed actual mastery** — predicted below threshold, but the student had mastered it."
-                 "(Bottom Left)")
+        # Unpack confusion matrix values
+        tn, fp, fn, tp = cm.ravel()
 
+        # Fill explanatory tabs
+        with tab1:
+            st.metric(label="True Positives (TP):", value=tp)
+            st.write("These are cases where the model **correctly predicted mastery** (ELO ≥ threshold)."
+                     "(Bottom right)")
 
+        with tab2:
+            st.metric(label="True Negatives (TN):", value=tn)
+            st.write("The model **correctly predicted lack of mastery** (ELO < threshold)."
+                     "(Top left)")
+
+        with tab3:
+            st.metric(label="False Positives (FP):", value=fp)
+            st.write("Model **falsely predicted mastery** when the student had not actually mastered the microgoal."
+                     "(Top Right)")
+
+        with tab4:
+            st.metric(label="False Negatives (FN):", value=fn)
+            st.write("Model **missed actual mastery** — predicted below threshold, but the student had mastered it."
+                     "(Bottom Left)")
