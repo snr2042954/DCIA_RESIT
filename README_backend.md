@@ -2,6 +2,8 @@
 
 This project applies Alternating Least Squares (ALS) matrix factorization to model student performance on educational microgoals. It supports hyperparameter optimization, evaluation against a baseline, and personalized recommendations that identify which tasks a student may safely skip based on predicted mastery.
 
+Note that running the entire backend is not strictly necessary. It is just for documentation purposes such that all code can be presented cleanly. All necessary code is imported by app.py itself and is explained in the frontend readme
+
 ## Project Overview
 
 The pipeline includes:
@@ -78,6 +80,9 @@ ALS predicts personalized ELO-style scores for each student–microgoal pair:
 In this project, ELO ≥ 1.0 is used as the threshold for **skip-worthy recommendations**, assuming the student has already mastered the concept.
 
 ## Running the Project
+
+To start it must be noted that all requirements are stored in requirements.txt and these can simply be loaded into any environment.
+
 
 1. **Preprocess the data:**
 
